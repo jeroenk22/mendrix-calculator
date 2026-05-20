@@ -1,4 +1,30 @@
-﻿<!doctype html>
+﻿<!--
+  MendriX Verblijfskosten en nachttoeslag calculator
+  ===================================================
+  Een enkelvoudig HTML-hulpmiddel voor salarisadministratie. Laad een MendriX TMS
+  salarisrapport (.xlsx) in en zie direct per medewerker de opgebouwde verblijfskosten
+  en nachttoeslag-uren over de geselecteerde periode.
+
+  Wat doet het?
+  - Leest een MendriX exportbestand in — rechtstreeks in de browser, er worden geen gegevens verstuurd
+  - Berekent per medewerker:
+      - Verblijfskosten (in euro's)
+      - Nachttoeslag uren (19%-toeslag, weergegeven in uren)
+  - Toont een overzichtstabel met sortering op naam, code, verblijf of nachttoeslag
+  - Zoekfunctie op naam of medewerkerscode
+  - Samenvattende totalen bovenaan (medewerkers, totaal verblijfskosten, totaal nachttoeslag uren)
+
+  Gebruik
+  1. Open verblijf_nacht_calculator.html in een moderne browser (Chrome, Edge, Firefox)
+  2. Sleep een MendriX TMS exportbestand (.xlsx) op het uploadgebied, of klik om een bestand te kiezen
+  3. De resultaten verschijnen direct in de tabel
+
+  Geen installatie, geen server, geen internet vereist. Alle berekeningen vinden lokaal in de browser plaats.
+
+  Auteur: Jeroen Krajenbrink — 2026
+  https://github.com/jeroenk22
+-->
+<!doctype html>
 <html lang="nl">
   <head>
     <meta charset="UTF-8" />
