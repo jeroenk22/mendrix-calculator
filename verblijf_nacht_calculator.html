@@ -13,6 +13,8 @@
   - Toont een overzichtstabel met sortering op naam, code, verblijf of nachttoeslag
   - Zoekfunctie op naam of medewerkerscode
   - Samenvattende totalen bovenaan (medewerkers, totaal verblijfskosten, totaal nachttoeslag uren)
+  - Exporteer naar Excel via de knop rechts naast de maandnaam; bestandsnaam: verblijfskosten_nachturen_<maand>_<jaar>.xlsx
+    Kolommen: Code, Naam, Verblijfskosten, Nachttoeslag uren — numerieke waarden (2 decimalen, geen valutasymbolen of eenheden)
 
   Gebruik
   1. Open verblijf_nacht_calculator.html in een moderne browser (Chrome, Edge, Firefox)
@@ -1306,7 +1308,7 @@
 
         const wb = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(wb, ws, 'Resultaten');
-        XLSX.writeFile(wb, `verblijf_nacht_${MAANDEN[domM]}_${domY}.xlsx`);
+        XLSX.writeFile(wb, `verblijfskosten_nachturen_${MAANDEN[domM]}_${domY}.xlsx`);
       }
 
       // ── File handling ─────────────────────────────────────────────────────────────

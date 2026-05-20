@@ -11,6 +11,8 @@ Een enkelvoudig HTML-hulpmiddel voor salarisadministratie. Laad een [MendriX](ht
 - Toont een overzichtstabel met sortering op naam, code, verblijf of nachttoeslag
 - Zoekfunctie op naam of medewerkerscode
 - Samenvattende totalen bovenaan (medewerkers, totaal verblijfskosten, totaal nachttoeslag uren)
+- **Exporteer naar Excel** via de knop rechts naast de maandnaam; bestandsnaam: `verblijfskosten_nachturen_<maand>_<jaar>.xlsx`  
+  Kolommen: Code, Naam, Verblijfskosten, Nachttoeslag uren — numerieke waarden met 2 decimalen (geen valutasymbolen of eenheden)
 
 ## Gebruik
 
