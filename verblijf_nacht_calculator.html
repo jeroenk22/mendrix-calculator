@@ -722,6 +722,9 @@
           <div class="month-heading" style="margin-bottom:0;" id="month-heading"></div>
           <button class="btn-export" onclick="exportToExcel()">↓ Exporteer naar Excel</button>
         </div>
+        <div id="export-err" class="error-box" style="display:none;margin-bottom:1rem;">
+          <span>⚠</span><span id="export-err-text"></span>
+        </div>
         <div class="stats" id="stats-bar"></div>
 
         <div class="controls">
@@ -1273,42 +1276,60 @@
         document.getElementById("search").value = "";
         document.getElementById("search-clear").style.display = "none";
         hideError();
+        hideExportError();
         document.getElementById("upload-card").style.display = "block";
         document.getElementById("result-card").style.display = "none";
       }
 
       // ── Export ────────────────────────────────────────────────────────────────────
+      function showExportError(msg) {
+        document.getElementById('export-err-text').textContent = msg;
+        document.getElementById('export-err').style.display = 'flex';
+      }
+      function hideExportError() {
+        document.getElementById('export-err').style.display = 'none';
+      }
+
       function exportToExcel() {
         if (!state) return;
-        const entries = getSortedEntries();
-        const { domM, domY } = state;
+        hideExportError();
 
-        const rows = [['Code', 'Naam', 'Verblijfskosten', 'Nachttoeslag uren']];
-        entries.forEach(([naam, v]) => {
-          rows.push([
-            parseInt(v.code),
-            naam,
-            parseFloat(v.verblijf.toFixed(2)),
-            parseFloat(v.nacht.toFixed(2)),
-          ]);
-        });
-        const totV = entries.reduce((s, [, v]) => s + v.verblijf, 0);
-        const totN = entries.reduce((s, [, v]) => s + v.nacht, 0);
-        rows.push(['', 'Totaal', parseFloat(totV.toFixed(2)), parseFloat(totN.toFixed(2))]);
+        try {
+          const entries = getSortedEntries();
+          if (!entries.length) {
+            showExportError('Geen medewerkers om te exporteren.');
+            return;
+          }
 
-        const ws = XLSX.utils.aoa_to_sheet(rows);
-        ws['!cols'] = [{ wch: 8 }, { wch: 32 }, { wch: 18 }, { wch: 18 }];
-
-        for (let i = 1; i < rows.length; i++) {
-          ['C', 'D'].forEach((col) => {
-            const ref = col + (i + 1);
-            if (ws[ref]) ws[ref].z = '#,##0.00';
+          const { domM, domY } = state;
+          const rows = [['Code', 'Naam', 'Verblijfskosten', 'Nachttoeslag uren']];
+          entries.forEach(([naam, v]) => {
+            rows.push([
+              parseInt(v.code),
+              naam,
+              parseFloat(v.verblijf.toFixed(2)),
+              parseFloat(v.nacht.toFixed(2)),
+            ]);
           });
-        }
+          const totV = entries.reduce((s, [, v]) => s + v.verblijf, 0);
+          const totN = entries.reduce((s, [, v]) => s + v.nacht, 0);
+          rows.push(['', 'Totaal', parseFloat(totV.toFixed(2)), parseFloat(totN.toFixed(2))]);
 
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, 'Resultaten');
-        XLSX.writeFile(wb, `verblijfskosten_nachturen_${MAANDEN[domM]}_${domY}.xlsx`);
+          const ws = XLSX.utils.aoa_to_sheet(rows);
+          ws['!cols'] = [{ wch: 8 }, { wch: 32 }, { wch: 18 }, { wch: 18 }];
+          for (let i = 1; i < rows.length; i++) {
+            ['C', 'D'].forEach((col) => {
+              const ref = col + (i + 1);
+              if (ws[ref]) ws[ref].z = '#,##0.00';
+            });
+          }
+
+          const wb = XLSX.utils.book_new();
+          XLSX.utils.book_append_sheet(wb, ws, 'Resultaten');
+          XLSX.writeFile(wb, `verblijfskosten_nachturen_${MAANDEN[domM]}_${domY}.xlsx`);
+        } catch (err) {
+          showExportError('Export mislukt: ' + err.message);
+        }
       }
 
       // ── File handling ─────────────────────────────────────────────────────────────
