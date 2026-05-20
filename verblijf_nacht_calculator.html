@@ -716,7 +716,10 @@
 
       <!-- Results card -->
       <div class="card" id="result-card" style="display: none">
-        <div class="month-heading" id="month-heading"></div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;">
+          <div class="month-heading" style="margin-bottom:0;" id="month-heading"></div>
+          <button class="btn-export" onclick="exportToExcel()">↓ Exporteer naar Excel</button>
+        </div>
         <div class="stats" id="stats-bar"></div>
 
         <div class="controls">
@@ -783,12 +786,7 @@
           <button class="btn-reset" onclick="resetTool()">
             ↺ Nieuw bestand laden
           </button>
-          <div style="display:flex;gap:10px;align-items:center;">
-            <button class="btn-export" onclick="exportToExcel()">
-              ↓ Exporteer naar Excel
-            </button>
-            <span class="footer-note" id="footer-note"></span>
-          </div>
+          <span class="footer-note" id="footer-note"></span>
         </div>
       </div>
     </div>
