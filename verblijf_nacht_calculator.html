@@ -960,9 +960,11 @@
       // ── Modal ─────────────────────────────────────────────────────────────────────
       function openModal() {
         document.getElementById("modal-backdrop").classList.add("open");
+        document.body.style.overflow = "hidden";
       }
       function closeModal() {
         document.getElementById("modal-backdrop").classList.remove("open");
+        document.body.style.overflow = "";
       }
       function backdropClick(e) {
         if (e.target === e.currentTarget) closeModal();
