@@ -1,0 +1,1272 @@
+﻿<!doctype html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Verblijfskosten en nachttoeslag calculator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      :root {
+        --bg: #ffffff;
+        --bg-sec: #f5f5f3;
+        --bg-ter: #eeecea;
+        --text: #1a1a18;
+        --text-sec: #6b6b67;
+        --text-ter: #9e9e9a;
+        --border: rgba(0, 0, 0, 0.1);
+        --border-md: rgba(0, 0, 0, 0.18);
+        --blue-bg: #e6f1fb;
+        --blue-txt: #0c447c;
+        --amber-bg: #faeeda;
+        --amber-txt: #854f0b;
+        --red-bg: #fcebeb;
+        --red-txt: #a32d2d;
+        --green-bg: #eaf3de;
+        --green-txt: #3b6d11;
+        --radius: 8px;
+        --radius-lg: 12px;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.08), 0 4px 16px rgba(0, 0, 0, 0.05);
+      }
+
+      @media (prefers-color-scheme: dark) {
+        :root {
+          --bg: #1e1e1c;
+          --bg-sec: #2a2a28;
+          --bg-ter: #323230;
+          --text: #f0ede8;
+          --text-sec: #a8a8a4;
+          --text-ter: #6b6b67;
+          --border: rgba(255, 255, 255, 0.1);
+          --border-md: rgba(255, 255, 255, 0.18);
+          --blue-bg: #042c53;
+          --blue-txt: #85b7eb;
+          --amber-bg: #412402;
+          --amber-txt: #fac775;
+          --red-bg: #501313;
+          --red-txt: #f09595;
+          --green-bg: #173404;
+          --green-txt: #c0dd97;
+        }
+      }
+
+      body {
+        font-family: -apple-system, "Segoe UI", system-ui, sans-serif;
+        background: var(--bg-ter);
+        color: var(--text);
+        min-height: 100vh;
+        padding: 2rem 1rem;
+        line-height: 1.5;
+      }
+
+      .page {
+        max-width: 900px;
+        margin: 0 auto;
+      }
+
+      /* ── Page header ── */
+      .page-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 2rem;
+        gap: 1rem;
+      }
+      .page-header-text {
+      }
+      .page-title {
+        font-size: 24px;
+        font-weight: 600;
+        letter-spacing: -0.3px;
+        color: var(--text);
+      }
+      .page-sub {
+        font-size: 14px;
+        color: var(--text-sec);
+        margin-top: 4px;
+      }
+
+      .btn-help {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 13px;
+        font-weight: 500;
+        color: var(--text-sec);
+        background: var(--bg);
+        border: 0.5px solid var(--border-md);
+        border-radius: var(--radius);
+        padding: 7px 14px;
+        cursor: pointer;
+        font-family: inherit;
+        transition:
+          background 0.12s,
+          color 0.12s;
+        white-space: nowrap;
+      }
+      .btn-help:hover {
+        background: var(--bg-sec);
+        color: var(--text);
+      }
+      .btn-help-icon {
+        font-size: 15px;
+      }
+
+      /* ── Card ── */
+      .card {
+        background: var(--bg);
+        border-radius: var(--radius-lg);
+        border: 0.5px solid var(--border);
+        box-shadow: var(--shadow);
+        padding: 1.75rem;
+      }
+
+      /* ── Upload ── */
+      .upload-zone {
+        border: 1.5px dashed var(--border-md);
+        border-radius: var(--radius-lg);
+        padding: 3rem 1.5rem;
+        text-align: center;
+        cursor: pointer;
+        transition:
+          background 0.15s,
+          border-color 0.15s;
+        background: var(--bg);
+      }
+      .upload-zone:hover,
+      .upload-zone.drag {
+        background: var(--bg-sec);
+        border-color: var(--blue-txt);
+      }
+      .upload-icon {
+        font-size: 36px;
+        margin-bottom: 12px;
+        display: block;
+      }
+      .upload-label {
+        font-size: 15px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .upload-sub {
+        font-size: 13px;
+        color: var(--text-sec);
+        margin-top: 4px;
+      }
+      .upload-hint {
+        font-size: 12px;
+        color: var(--text-ter);
+        margin-top: 8px;
+      }
+
+      /* ── Error ── */
+      .error-box {
+        background: var(--red-bg);
+        border: 0.5px solid var(--red-txt);
+        border-radius: var(--radius);
+        padding: 10px 14px;
+        font-size: 13px;
+        color: var(--red-txt);
+        margin-top: 1rem;
+        display: flex;
+        gap: 8px;
+        align-items: flex-start;
+      }
+
+      /* ── Stats ── */
+      .month-heading {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 1.25rem;
+        text-transform: capitalize;
+      }
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+        margin-bottom: 1.5rem;
+      }
+      .stat {
+        background: var(--bg-sec);
+        border-radius: var(--radius);
+        padding: 1rem 1.1rem;
+      }
+      .stat-label {
+        font-size: 12px;
+        color: var(--text-sec);
+        margin-bottom: 4px;
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      .stat-value {
+        font-size: 20px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .stat-value.blue {
+        color: var(--blue-txt);
+      }
+      .stat-value.amber {
+        color: var(--amber-txt);
+      }
+
+      /* ── Controls ── */
+      .controls {
+        display: flex;
+        gap: 10px;
+        margin-bottom: 1rem;
+        align-items: center;
+      }
+      .search-wrap {
+        position: relative;
+        flex: 1;
+      }
+      .search-icon {
+        position: absolute;
+        left: 10px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-ter);
+        font-size: 14px;
+        pointer-events: none;
+        line-height: 1;
+      }
+      .search-input {
+        width: 100%;
+        padding: 8px 30px 8px 30px;
+        font-size: 14px;
+        border: 0.5px solid var(--border-md);
+        border-radius: var(--radius);
+        background: var(--bg);
+        color: var(--text);
+        outline: none;
+        transition:
+          border-color 0.15s,
+          box-shadow 0.15s;
+        font-family: inherit;
+      }
+      .search-input:focus {
+        border-color: var(--blue-txt);
+        box-shadow: 0 0 0 2px rgba(12, 68, 124, 0.12);
+      }
+      .search-input::placeholder {
+        color: var(--text-ter);
+      }
+      .search-clear {
+        position: absolute;
+        right: 8px;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-ter);
+        font-size: 14px;
+        padding: 2px 4px;
+        border-radius: 4px;
+        display: none;
+        font-family: inherit;
+        line-height: 1;
+      }
+      .search-clear:hover {
+        color: var(--text-sec);
+      }
+      .result-count {
+        font-size: 13px;
+        color: var(--text-sec);
+        white-space: nowrap;
+      }
+
+      /* ── Table ── */
+      .tbl-wrap {
+        overflow-x: auto;
+        border-radius: var(--radius-lg);
+        border: 0.5px solid var(--border);
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 14px;
+        table-layout: fixed;
+      }
+      thead th {
+        padding: 10px 14px;
+        text-align: left;
+        font-weight: 500;
+        font-size: 12px;
+        color: var(--text-sec);
+        background: var(--bg-sec);
+        border-bottom: 0.5px solid var(--border);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        user-select: none;
+      }
+      thead th.r {
+        text-align: right;
+      }
+      thead th.sortable {
+        cursor: pointer;
+      }
+      thead th.sortable:hover {
+        color: var(--text);
+      }
+      .sort-arrow {
+        margin-left: 3px;
+        opacity: 0.35;
+        font-size: 10px;
+      }
+      .sort-arrow.active {
+        opacity: 1;
+        color: var(--blue-txt);
+      }
+      tbody tr {
+        border-bottom: 0.5px solid var(--border);
+        transition: background 0.1s;
+      }
+      tbody tr:last-child {
+        border-bottom: none;
+      }
+      tbody tr:hover {
+        background: var(--bg-sec);
+      }
+      tbody tr.hidden {
+        display: none;
+      }
+      td {
+        padding: 9px 14px;
+        color: var(--text);
+      }
+      td.r {
+        text-align: right;
+      }
+      td.code-cell {
+        font-size: 12px;
+        color: var(--text-ter);
+        font-variant-numeric: tabular-nums;
+      }
+      td.name {
+        font-weight: 500;
+      }
+      td.zero {
+        color: var(--text-ter);
+        text-align: right;
+      }
+      td.tv {
+        color: var(--blue-txt);
+        text-align: right;
+      }
+      td.tn {
+        color: var(--amber-txt);
+        text-align: right;
+      }
+      td.tt {
+        text-align: right;
+      }
+      tfoot td {
+        padding: 10px 14px;
+        font-weight: 600;
+        font-size: 12px;
+        background: var(--bg-sec);
+        border-top: 0.5px solid var(--border-md);
+        color: var(--text-sec);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+      }
+      tfoot td.r {
+        text-align: right;
+      }
+      tfoot .tv {
+        color: var(--blue-txt);
+        text-align: right;
+      }
+      tfoot .tn {
+        color: var(--amber-txt);
+        text-align: right;
+      }
+      tfoot .tt {
+        color: var(--text);
+        text-align: right;
+      }
+
+      .badge-v {
+        display: inline-block;
+        background: var(--blue-bg);
+        color: var(--blue-txt);
+        font-size: 11px;
+        padding: 2px 7px;
+        border-radius: var(--radius);
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+      .badge-n {
+        display: inline-block;
+        background: var(--amber-bg);
+        color: var(--amber-txt);
+        font-size: 11px;
+        padding: 2px 7px;
+        border-radius: var(--radius);
+        font-weight: 500;
+        text-transform: none;
+        letter-spacing: 0;
+      }
+
+      .no-results {
+        padding: 2rem;
+        text-align: center;
+        color: var(--text-ter);
+        font-size: 14px;
+        display: none;
+      }
+
+      /* ── Footer bar ── */
+      .footer-bar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-top: 1rem;
+      }
+      .btn-reset {
+        font-size: 13px;
+        color: var(--text-sec);
+        cursor: pointer;
+        background: none;
+        border: 0.5px solid var(--border-md);
+        border-radius: var(--radius);
+        padding: 6px 14px;
+        font-family: inherit;
+        transition: background 0.12s;
+      }
+      .btn-reset:hover {
+        background: var(--bg-sec);
+      }
+      .footer-note {
+        font-size: 12px;
+        color: var(--text-ter);
+      }
+
+      .app-footer {
+        margin-top: 32px;
+        padding: 20px 24px;
+        border-top: 1px solid var(--border);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 6px;
+        text-align: center;
+      }
+      .app-footer-desc {
+        font-size: 13px;
+        color: var(--text-sec);
+        max-width: 540px;
+        line-height: 1.5;
+      }
+      .app-footer-meta {
+        font-size: 12px;
+        color: var(--text-ter);
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+      .app-footer-meta a {
+        color: var(--text-ter);
+        text-decoration: none;
+        border-bottom: 1px solid var(--border-md);
+        transition: color 0.12s;
+      }
+      .app-footer-meta a:hover {
+        color: var(--text-sec);
+      }
+
+      /* ── Modal ── */
+      .modal-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.45);
+        z-index: 100;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+      }
+      .modal-backdrop.open {
+        display: flex;
+      }
+      .modal {
+        background: var(--bg);
+        border-radius: var(--radius-lg);
+        border: 0.5px solid var(--border);
+        box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18);
+        width: 100%;
+        max-width: 560px;
+        max-height: 88vh;
+        overflow-y: auto;
+        padding: 1.75rem;
+      }
+      .modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        margin-bottom: 1.25rem;
+        gap: 1rem;
+      }
+      .modal-title {
+        font-size: 17px;
+        font-weight: 600;
+        color: var(--text);
+      }
+      .modal-close {
+        flex-shrink: 0;
+        background: none;
+        border: none;
+        cursor: pointer;
+        font-size: 20px;
+        color: var(--text-ter);
+        padding: 0;
+        line-height: 1;
+        font-family: inherit;
+      }
+      .modal-close:hover {
+        color: var(--text);
+      }
+      .modal-intro {
+        font-size: 14px;
+        color: var(--text-sec);
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+      }
+
+      .steps {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .step {
+        display: flex;
+        gap: 14px;
+        padding: 14px 0;
+        border-bottom: 0.5px solid var(--border);
+      }
+      .step:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+      }
+      .step-num {
+        flex-shrink: 0;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        background: var(--blue-bg);
+        color: var(--blue-txt);
+        font-size: 12px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-top: 1px;
+      }
+      .step-body {
+      }
+      .step-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: var(--text);
+        margin-bottom: 3px;
+      }
+      .step-desc {
+        font-size: 13px;
+        color: var(--text-sec);
+        line-height: 1.55;
+      }
+      .step-desc code {
+        background: var(--bg-sec);
+        border: 0.5px solid var(--border-md);
+        border-radius: 4px;
+        padding: 1px 5px;
+        font-size: 12px;
+        font-family: "Courier New", monospace;
+        color: var(--text);
+      }
+
+      .modal-note {
+        margin-top: 1.25rem;
+        padding: 10px 14px;
+        background: var(--amber-bg);
+        border-radius: var(--radius);
+        font-size: 13px;
+        color: var(--amber-txt);
+        line-height: 1.55;
+      }
+
+      /* ── Responsive ── */
+      @media (max-width: 620px) {
+        .stats {
+          grid-template-columns: 1fr 1fr;
+        }
+        .stats .stat:last-child {
+          grid-column: span 2;
+        }
+        .page-title {
+          font-size: 20px;
+        }
+        .controls {
+          flex-wrap: wrap;
+        }
+        .result-count {
+          width: 100%;
+        }
+        .page-header {
+          flex-direction: column;
+          gap: 0.75rem;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <!-- Page header -->
+      <div class="page-header">
+        <div class="page-header-text">
+          <div class="page-title">
+            Verblijfskosten en nachttoeslag calculator
+          </div>
+          <div class="page-sub">
+            Laad een MendriX salarisrapport (.xlsx) in om de totalen per
+            medewerker te berekenen.
+          </div>
+        </div>
+        <button class="btn-help" onclick="openModal()">
+          <span class="btn-help-icon">ℹ</span> Hoe kom ik aan het rapport
+          bestand?
+        </button>
+      </div>
+
+      <!-- Upload card -->
+      <div class="card" id="upload-card">
+        <div
+          class="upload-zone"
+          id="drop-zone"
+          onclick="document.getElementById('fi').click()"
+        >
+          <span class="upload-icon">📊</span>
+          <div class="upload-label">Klik om een bestand te kiezen</div>
+          <div class="upload-sub">of sleep een .xlsx bestand hierheen</div>
+          <div class="upload-hint">
+            MendriX TMS exportbestand — Samenvatting voor salarisadministratie
+          </div>
+          <input type="file" id="fi" accept=".xlsx" style="display: none" />
+        </div>
+        <div id="err" class="error-box" style="display: none">
+          <span>⚠</span><span id="err-text"></span>
+        </div>
+      </div>
+
+      <!-- Results card -->
+      <div class="card" id="result-card" style="display: none">
+        <div class="month-heading" id="month-heading"></div>
+        <div class="stats" id="stats-bar"></div>
+
+        <div class="controls">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input
+              type="text"
+              class="search-input"
+              id="search"
+              placeholder="Zoek op code of naam…"
+              oninput="onSearch(this.value)"
+              autocomplete="off"
+            />
+            <button
+              class="search-clear"
+              id="search-clear"
+              onclick="clearSearch()"
+              title="Wis zoekopdracht"
+            >
+              ✕
+            </button>
+          </div>
+          <span class="result-count" id="result-count"></span>
+        </div>
+
+        <div class="tbl-wrap">
+          <table id="main-table">
+            <thead>
+              <tr>
+                <th
+                  class="sortable"
+                  style="width: 10%; white-space: nowrap"
+                  onclick="sortClick('code')"
+                >
+                  Code <span class="sort-arrow" id="arr-code">↕</span>
+                </th>
+                <th
+                  class="sortable"
+                  style="width: 34%"
+                  onclick="sortClick('naam')"
+                >
+                  Naam <span class="sort-arrow" id="arr-naam">↕</span>
+                </th>
+                <th class="sortable r" onclick="sortClick('verblijf')">
+                  <span class="badge-v">Verblijf</span>
+                  <span class="sort-arrow" id="arr-verblijf">↕</span>
+                </th>
+                <th class="sortable r" onclick="sortClick('nacht')">
+                  <span class="badge-n">Nacht 19%</span>
+                  <span class="sort-arrow" id="arr-nacht">↕</span>
+                </th>
+                
+              </tr>
+            </thead>
+            <tbody id="tbl-body"></tbody>
+            <tfoot id="tbl-foot"></tfoot>
+          </table>
+          <div class="no-results" id="no-results">
+            Geen medewerkers gevonden voor "<span id="no-results-term"></span>"
+          </div>
+        </div>
+
+        <div class="footer-bar">
+          <button class="btn-reset" onclick="resetTool()">
+            ↺ Nieuw bestand laden
+          </button>
+          <span class="footer-note" id="footer-note"></span>
+        </div>
+      </div>
+    </div>
+    <!-- /page -->
+
+    <footer class="app-footer">
+      <p class="app-footer-desc">
+        Dit hulpmiddel leest een MendriX TMS salarisrapport (.xlsx) in en berekent per medewerker de totale verblijfskosten en nachttoeslag-uren over de geselecteerde periode.
+      </p>
+      <div class="app-footer-meta">
+        <span>Gemaakt door Jeroen Krajenbrink &mdash; 2026</span>
+        <span>&middot;</span>
+        <a href="https://github.com/jeroenk22" target="_blank" rel="noopener">github.com/jeroenk22</a>
+      </div>
+    </footer>
+
+    <!-- Help modal -->
+    <div
+      class="modal-backdrop"
+      id="modal-backdrop"
+      onclick="backdropClick(event)"
+    >
+      <div
+        class="modal"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
+        <div class="modal-header">
+          <div class="modal-title" id="modal-title">
+            Hoe kom ik aan het rapportbestand (xlsx)?
+          </div>
+          <button
+            class="modal-close"
+            onclick="closeModal()"
+            aria-label="Sluiten"
+          >
+            ✕
+          </button>
+        </div>
+        <p class="modal-intro">
+          De calculator werkt met het rapport
+          <strong>Samenvatting voor salarisadministratie</strong>
+          uit MendriX TMS. Volg onderstaande stappen om dit bestand te
+          exporteren.
+        </p>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <div class="step-body">
+              <div class="step-title">Ga naar Werkuren</div>
+              <div class="step-desc">
+                Ga in MendriX naar <code>Werkuren</code>.
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <div class="step-body">
+              <div class="step-title">Open de zoekfilter</div>
+              <div class="step-desc">
+                Gebruik <code>CTRL+SHIFT+F</code> om de zoekfilter te openen.
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <div class="step-body">
+              <div class="step-title">Stel de periode in</div>
+              <div class="step-desc">
+                Kies als periode <strong>volle weken</strong> — ook als er
+                dagen uit de vorige of volgende maand bijzitten (voorbeeld:
+                april 2026 bevat ook 30 en 31 maart en 1, 2 en 3 mei). Laat
+                <em>Uitvoerder</em> op <strong>Geen</strong> staan en druk
+                op <strong>OK</strong>.
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <div class="step-body">
+              <div class="step-title">Open het rapport via Lijsten</div>
+              <div class="step-desc">
+                Klik bovenin MendriX op <code>Lijsten…</code> en selecteer
+                <strong>Samenvatting voor salarisadministratie - met totalen</strong>.
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <div class="step-body">
+              <div class="step-title">Exporteer als Excel</div>
+              <div class="step-desc">
+                Klik onderaan op <code>Als Excel</code> en vervolgens op
+                <code>Papieren versie opslaan…</code>.
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">6</div>
+            <div class="step-body">
+              <div class="step-title">Genereer een gedetailleerde rapportage</div>
+              <div class="step-desc">
+                Vink in het volgende venster
+                <strong>Genereer een gedetailleerde rapportage</strong> aan en
+                klik op <strong>OK</strong>. MendriX verzamelt nu de data —
+                dit kan een paar minuten duren.
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">7</div>
+            <div class="step-body">
+              <div class="step-title">Sla het bestand op als .xlsx</div>
+              <div class="step-desc">
+                Selecteer in het venster dat verschijnt bij <em>Type:</em>
+                de optie <strong>Xlsx Rapport Bestand</strong>, kies een
+                makkelijk terug te vinden locatie en klik op
+                <strong>OK</strong>.
+              </div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="step-num">8</div>
+            <div class="step-body">
+              <div class="step-title">Laad het bestand in de calculator</div>
+              <div class="step-desc">
+                Sleep het opgeslagen <code>.xlsx</code> bestand naar het
+                uploadvenster, of klik op
+                <em>Klik om een bestand te kiezen</em>.
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-note">
+          ⚠ Het rapport wordt door MendriX gegenereerd met de disclaimer
+          <em
+            >"Dit rapport is onder voorbehoud van onvolkomenheden en dient
+            altijd handmatig gecontroleerd te worden."</em
+          >
+          Controleer de uitkomsten altijd steekproefsgewijs.
+        </div>
+      </div>
+    </div>
+
+    <script>
+      const MAANDEN = [
+        "januari",
+        "februari",
+        "maart",
+        "april",
+        "mei",
+        "juni",
+        "juli",
+        "augustus",
+        "september",
+        "oktober",
+        "november",
+        "december",
+      ];
+      let state = null;
+      let sortCol = "naam",
+        sortDir = 1;
+      let searchTerm = "";
+
+      // ── Modal ─────────────────────────────────────────────────────────────────────
+      function openModal() {
+        document.getElementById("modal-backdrop").classList.add("open");
+      }
+      function closeModal() {
+        document.getElementById("modal-backdrop").classList.remove("open");
+      }
+      function backdropClick(e) {
+        if (e.target === e.currentTarget) closeModal();
+      }
+      document.addEventListener("keydown", (e) => {
+        if (e.key === "Escape") closeModal();
+      });
+
+      // ── Helpers ───────────────────────────────────────────────────────────────────
+      function showError(msg) {
+        document.getElementById("err-text").textContent = msg;
+        document.getElementById("err").style.display = "flex";
+      }
+      function hideError() {
+        document.getElementById("err").style.display = "none";
+      }
+
+      function fmt(v) {
+        if (v === 0) return "–";
+        return "€\u202f" + v.toFixed(2).replace(".", ",");
+      }
+
+      function fmtHours(v) {
+        if (v === 0) return "–";
+        return v.toFixed(2).replace(".", ",") + " u";
+      }
+
+      function isGegenereerd(row) {
+        for (let i = 0; i < row.length; i++) {
+          if (
+            typeof row[i] === "string" &&
+            row[i].indexOf("Gegenereerd met MendriX") !== -1
+          )
+            return true;
+        }
+        return false;
+      }
+
+      function toDate(v) {
+        if (typeof v === "number" && v > 40000 && v < 60000) {
+          const d = XLSX.SSF.parse_date_code(v);
+          return d ? new Date(d.y, d.m - 1, d.d) : null;
+        }
+        if (v instanceof Date)
+          return new Date(v.getFullYear(), v.getMonth(), v.getDate());
+        return null;
+      }
+
+      // ── Processing ────────────────────────────────────────────────────────────────
+      function processWorkbook(wb) {
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, {
+          header: 1,
+          raw: true,
+          defval: null,
+        });
+        if (!rows || rows.length < 9) {
+          showError("Onverwachte bestandsstructuur — is dit het juiste MendriX exportbestand?");
+          return;
+        }
+
+        // Validate that this is a MendriX export by looking for the generator signature
+        const isMendriX = rows.some(row => row && isGegenereerd(row));
+        if (!isMendriX) {
+          showError("Dit lijkt niet het juiste rapport te zijn. Laad het rapport 'Samenvatting voor salarisadministratie - met totalen' uit MendriX.");
+          return;
+        }
+
+        const COL_V = 25,
+          COL_N = 26,
+          HEADER = 6;
+        const employees = {}; // key = naam, value = { code, verblijf, nacht }
+
+        // Pass 1 — dominant month
+        const allDates = [];
+        for (let i = HEADER + 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row || isGegenereerd(row)) continue;
+          const d = toDate(row[0]);
+          if (d) allDates.push(d);
+        }
+        if (!allDates.length) {
+          showError("Geen datums gevonden in het bestand.");
+          return;
+        }
+
+        const mc = {},
+          yc = {};
+        allDates.forEach((d) => {
+          mc[d.getMonth()] = (mc[d.getMonth()] || 0) + 1;
+          yc[d.getFullYear()] = (yc[d.getFullYear()] || 0) + 1;
+        });
+        const domM = parseInt(
+          Object.entries(mc).sort((a, b) => b[1] - a[1])[0][0],
+        );
+        const domY = parseInt(
+          Object.entries(yc).sort((a, b) => b[1] - a[1])[0][0],
+        );
+
+        // Pass 2 — accumulate per employee
+        let curEmp = null;
+        for (let i = HEADER + 1; i < rows.length; i++) {
+          const row = rows[i];
+          if (!row) continue;
+          if (isGegenereerd(row)) continue; // page-break — keep curEmp intact
+
+          const c0 = row[0],
+            c1 = row[1],
+            c4 = row[4];
+          const c0str =
+            c0 === null || c0 === undefined ? "" : String(c0).trim();
+
+          if (c0str.startsWith("Subtotaal")) continue;
+
+          const isNumCode =
+            c0 !== null &&
+            c0 !== undefined &&
+            !isNaN(c0) &&
+            c0 !== "" &&
+            typeof c1 === "string" &&
+            c1.trim() !== "";
+          const hasDiensten =
+            c4 !== null && c4 !== undefined && String(c4).trim() !== "";
+
+          if (isNumCode && !hasDiensten) {
+            // Employee header row
+            curEmp = c1.trim();
+            if (!employees[curEmp]) {
+              employees[curEmp] = {
+                code: String(parseInt(c0)),
+                verblijf: 0,
+                nacht: 0,
+              };
+            }
+            continue;
+          }
+          if (isNumCode && hasDiensten) continue; // summary row
+
+          // Detail row — only dominant month
+          const d = toDate(c0);
+          if (
+            d &&
+            curEmp &&
+            d.getMonth() === domM &&
+            d.getFullYear() === domY
+          ) {
+            employees[curEmp].verblijf += parseFloat(row[COL_V]) || 0;
+            employees[curEmp].nacht += parseFloat(row[COL_N]) || 0;
+          }
+        }
+
+        if (Object.keys(employees).length === 0) {
+          showError("Geen medewerkers gevonden in het bestand. Controleer of het juiste rapport is geladen en of de periode correct is ingesteld.");
+          return;
+        }
+
+        state = { employees, domM, domY };
+        sortCol = "naam";
+        sortDir = 1;
+        searchTerm = "";
+        renderResults();
+      }
+
+      // ── Render ────────────────────────────────────────────────────────────────────
+      function getSortedEntries() {
+        const entries = Object.entries(state.employees);
+        entries.sort((a, b) => {
+          if (sortCol === "code") {
+            return sortDir * (parseInt(a[1].code) - parseInt(b[1].code));
+          }
+          if (sortCol === "naam")
+            return sortDir * a[0].localeCompare(b[0], "nl");
+          const va =
+            sortCol === "verblijf"
+              ? a[1].verblijf
+              : a[1].nacht;
+          const vb =
+            sortCol === "verblijf"
+              ? b[1].verblijf
+              : b[1].nacht;
+          return sortDir * (va - vb);
+        });
+        return entries;
+      }
+
+      function renderResults() {
+        if (!state) return;
+        const { domM, domY } = state;
+
+        document.getElementById("month-heading").textContent =
+          MAANDEN[domM] + " " + domY;
+
+        ["code", "naam", "verblijf", "nacht"].forEach((col) => {
+          const el = document.getElementById("arr-" + col);
+          if (sortCol === col) {
+            el.textContent = sortDir === 1 ? "↑" : "↓";
+            el.classList.add("active");
+          } else {
+            el.textContent = "↕";
+            el.classList.remove("active");
+          }
+        });
+
+        const entries = getSortedEntries();
+        const totV = entries.reduce((s, [, v]) => s + v.verblijf, 0);
+        const totN = entries.reduce((s, [, v]) => s + v.nacht, 0);
+
+        document.getElementById("stats-bar").innerHTML = `
+    <div class="stat"><div class="stat-label">Medewerkers</div><div class="stat-value">${entries.length}</div></div>
+    <div class="stat"><div class="stat-label">Totaal verblijfskosten</div><div class="stat-value blue">${fmt(totV)}</div></div>
+    <div class="stat"><div class="stat-label">Totaal nachttoeslag uren</div><div class="stat-value amber">${fmtHours(totN)}</div></div>
+  `;
+
+        const currentSearch = document.getElementById("search").value;
+        const term = currentSearch.trim().toLowerCase();
+
+        document.getElementById("tbl-body").innerHTML = entries
+          .map(([naam, v]) => {
+            const matchCode = v.code.includes(term);
+            const matchNaam = naam.toLowerCase().includes(term);
+            const hidden = term && !matchCode && !matchNaam ? " hidden" : "";
+            return `<tr class="emp-row${hidden}" data-naam="${naam.toLowerCase()}" data-code="${v.code}">
+      <td class="code-cell">${v.code}</td>
+      <td class="name">${naam}</td>
+      <td class="${v.verblijf ? "tv" : "zero"}">${fmt(v.verblijf)}</td>
+      <td class="${v.nacht ? "tn" : "zero"}">${fmtHours(v.nacht)}</td>
+    </tr>`;
+          })
+          .join("");
+
+        document.getElementById("tbl-foot").innerHTML = `<tr>
+    <td></td>
+    <td>Totaal (${entries.length} mw.)</td>
+    <td class="tv">${fmt(totV)}</td>
+    <td class="tn">${fmtHours(totN)}</td>
+  </tr>`;
+
+        document.getElementById("footer-note").textContent =
+          "Periode: " + MAANDEN[domM] + " " + domY;
+
+        searchTerm = term;
+        updateSearchUI();
+
+        document.getElementById("upload-card").style.display = "none";
+        document.getElementById("result-card").style.display = "block";
+      }
+
+      // ── Search ────────────────────────────────────────────────────────────────────
+      function onSearch(val) {
+        searchTerm = val.trim().toLowerCase();
+        document.getElementById("search-clear").style.display = searchTerm
+          ? "block"
+          : "none";
+
+        document.querySelectorAll(".emp-row").forEach((row) => {
+          const naam = row.getAttribute("data-naam") || "";
+          const code = row.getAttribute("data-code") || "";
+          row.classList.toggle(
+            "hidden",
+            searchTerm !== "" &&
+              !naam.includes(searchTerm) &&
+              !code.includes(searchTerm),
+          );
+        });
+
+        updateSearchUI();
+      }
+
+      function clearSearch() {
+        document.getElementById("search").value = "";
+        onSearch("");
+      }
+
+      function updateSearchUI() {
+        const allRows = document.querySelectorAll(".emp-row");
+        const visible = document.querySelectorAll(".emp-row:not(.hidden)");
+        const noRes = document.getElementById("no-results");
+        const countEl = document.getElementById("result-count");
+
+        if (searchTerm && visible.length === 0) {
+          noRes.style.display = "block";
+          document.getElementById("no-results-term").textContent = document
+            .getElementById("search")
+            .value.trim();
+          countEl.textContent = "";
+        } else {
+          noRes.style.display = "none";
+          countEl.textContent = searchTerm
+            ? visible.length + " van " + allRows.length + " medewerkers"
+            : allRows.length + " medewerkers";
+        }
+      }
+
+      // ── Sort ──────────────────────────────────────────────────────────────────────
+      function sortClick(col) {
+        if (sortCol === col) sortDir *= -1;
+        else {
+          sortCol = col;
+          sortDir = col === "naam" || col === "code" ? 1 : -1;
+        }
+        renderResults();
+      }
+
+      // ── Reset ─────────────────────────────────────────────────────────────────────
+      function resetTool() {
+        state = null;
+        sortCol = "naam";
+        sortDir = 1;
+        searchTerm = "";
+        document.getElementById("fi").value = "";
+        document.getElementById("search").value = "";
+        document.getElementById("search-clear").style.display = "none";
+        hideError();
+        document.getElementById("upload-card").style.display = "block";
+        document.getElementById("result-card").style.display = "none";
+      }
+
+      // ── File handling ─────────────────────────────────────────────────────────────
+      function handleFile(file) {
+        if (!file) return;
+        if (!file.name.endsWith(".xlsx")) {
+          showError("Alleen .xlsx bestanden worden ondersteund.");
+          return;
+        }
+        hideError();
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const wb = XLSX.read(new Uint8Array(e.target.result), {
+              type: "array",
+              cellDates: false,
+            });
+            processWorkbook(wb);
+          } catch (err) {
+            showError("Fout bij het lezen van het bestand: " + err.message);
+          }
+        };
+        reader.readAsArrayBuffer(file);
+      }
+
+      document
+        .getElementById("fi")
+        .addEventListener("change", (e) => handleFile(e.target.files[0]));
+      const dz = document.getElementById("drop-zone");
+      dz.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dz.classList.add("drag");
+      });
+      dz.addEventListener("dragleave", () => dz.classList.remove("drag"));
+      dz.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dz.classList.remove("drag");
+        handleFile(e.dataTransfer.files[0]);
+      });
+    </script>
+  </body>
+</html>
